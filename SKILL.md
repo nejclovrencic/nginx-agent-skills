@@ -17,6 +17,7 @@ When writing or reviewing Nginx configuration:
 2. Prefer `map` over `if` for conditional logic. `if` in location context is dangerous and only reliably supports `return` and `rewrite`. See references/nginx-gotchas.md for the full list.
 3. Always clarify `proxy_pass` trailing-slash behavior — it is the single most common source of subtle bugs.
 4. When writing `upstream` blocks, always include keepalive configuration and explain connection pooling implications.
+5. When writing Nginx directives, always check [docs](https://nginx.org/en/docs/), specifically module references, to verify that a directive actually exists, and what values it accepts (on/off, variable, fixed values, etc).
 
 When writing OpenResty/Lua code:
 
