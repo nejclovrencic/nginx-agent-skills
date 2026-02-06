@@ -35,8 +35,8 @@ When advising on performance:
 
 Load these as needed based on the task:
 
-- **[references/nginx-gotchas.md](references/nginx-gotchas.md)** — Directive behavior gotchas, inheritance rules, location matching, buffer tuning, common misconfigurations. Read when writing or debugging any Nginx config.
-- **[references/openresty-api.md](references/openresty-api.md)** — Phase handler reference, cosocket API, shared dict operations, timer patterns, body handling. Read when writing Lua/OpenResty code.
-- **[references/testing-patterns.md](references/testing-patterns.md)** — Config validation, load testing methodology, performance profiling, debugging techniques. Read when testing or benchmarking.
+- **[references/nginx-gotchas.md](references/nginx-gotchas.md)** — Directive behavior gotchas, inheritance rules, location matching, common misconfigurations. Read when writing or debugging any Nginx config.
+- **[references/openresty-api.md](references/openresty-api.md)** — Phase handler reference, shared dict operations. Read when writing Lua/OpenResty code.
+- **[references/testing-patterns.md](references/testing-patterns.md)** — Config validation. Read when testing or benchmarking.
 
 
