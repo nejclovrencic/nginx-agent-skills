@@ -6,6 +6,7 @@
 3. [proxy_pass trailing slash behavior](#proxy_pass-trailing-slash-behavior)
 4. [Directive Inheritance](#directive-inheritance)
 5. [Upstream Keepalive](#upstream-keepalive)
+6. [Proxy cache lock](#proxy_cache_lock)
 
 ---
 Beginner's guide is available at
@@ -239,3 +240,44 @@ location / {
 ```
 
 Forgetting `proxy_http_version 1.1` or `proxy_http_version 2` and `Connection ""` is the #1 reason keepalive doesn't work. Always include both.
+
+## Proxy cache lock
+
+Due to Nginx’s event loop nature, proxy_cache_lock locks the resource, and all other requests must periodically check if the lock has been released before they can access the cache and respond to the client. The lock is global, not at the worker level, as some sources claim, so even with multiple Nginx workers, only one request reaches the origin for a given proxy_cache_key.
+
+Locking is skipped for requests that have proxy_cache_bypass or proxy_no_cache set.
+
+The lock’s release check is done only every 500ms and cannot be configured. In a worst-case scenario, simultaneous requests that get locked get 500ms added to their response times. This is not configurable without patching Nginx source, as explained in this [blog post](https://nejc.blog/2024/11/06/nginx-proxy-cache-lock-request-coalescing/) but not everyone can afford patching Nginx.
+
+Another drawback of proxy_cache_lock is that it locks all cache miss requests without an option to exclude some requests from the lock.
+
+For example, suppose you want to bypass the edge cache for all requests from the origin that contain an X-Cache-Bypass response header. In the phase where proxy cache lock gets applied, Nginx cannot know that a request will bypass the cache, as it doesn’t know what headers the origin will send. Because of that, it will lock all requests.
+
+This is expected, as Nginx doesn’t see the future to determine if the cache will be bypassed, but some other tools have a solution for this problem. Varnish implements a hit-for-pass mechanism, which essentially caches the fact that the request shouldn’t be cached.
+
+Hit-for-pass marks an otherwise cacheable resource as uncacheable for a specific time. Whenever a request for the resource comes in, it bypasses the cache and goes straight to the origin without any locking.
+
+If using Openresty’s lua-nginx-module, this can be implemented by` using shared memory dictionaries. Based on response parameters, you can store the cache keys for resources that bypass the cache in the header_filter phase. Then, in the access phase, you check if the resource is marked as hit-for-pass and bypass the cache if it is. Remember, bypassing the cache prevents proxy_cache_lock from turning on, allowing requests to go directly to the origin.
+
+Below is Lua pseudocode implementing a hit-for-pass mechanism for Nginx.
+
+```lua_shared_dict hit_for_pass 100m;
+header_filter_by_lua_block {
+    local function is_uncacheable()
+        return ngx.header["X-Cache-Bypass"] ~= nil
+    end
+    if is_uncacheable() then
+        local cache_key = ngx.md5(ngx.var.proxy_cache_key)
+        ngx.shared.hit_for_pass:add(cache_key, 1, 10)
+    end
+}
+access_by_lua_block {
+    local cache_key = ngx.md5(ngx.var.proxy_cache_key)
+    local hfp, _ = ngx.shared.hit_for_pass:get(cache_key)
+    if hfp then
+        ngx.var.lua_cache_bypass = 1
+    end
+}
+proxy_cache_bypass $lua_cache_bypass;
+proxy_cache_key $proxy_cache_key;
+```
