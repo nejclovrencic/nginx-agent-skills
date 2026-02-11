@@ -189,6 +189,30 @@ Other commonly affected directives:
 - `zone_sync_ssl_conf_command`
 - `sub_filter`
 
+Some directives can be specified multiple times in the same block and effectively add together. For example, you can have `proxy_next_upstream error;` in server block and `proxy_next_upstream timeout;` in the same block again. It would work the same as having `proxy_next_upstream error timeout;`. While it might not make sense having the same directive applied multiple times in the same block, it is useful in complex codebases where you have multiple includes, or a global include. For example there might be a file called `global-options` that is included in every server block and defines a `proxy_next_upstream error;` amongst opther options. If you want to use a another proxy_next_upstream value in one specific server block, you don't need to omit the global-options include and can just specify another proxy_next_upstream config. This is true for all directives that use `ngx_conf_set_bitmask_slot` in Nginx source.
+
+```
+http {
+    proxy_next_upstream error;
+
+    server {
+        listen 80;
+        server_name example.com;
+
+        # This will cause nginx -t to complain about duplicate "error"
+        # because "error" is already inherited from http level
+        proxy_next_upstream error timeout;
+
+        location /api {
+            proxy_pass http://backend;
+        }
+    }
+}
+```
+
+
+
+
 ## Upstream Keepalive
 
 The `keepalive` directive in `upstream` blocks is not the max number of connection, it is the **max number of idle connections** cached per worker process.
