@@ -2,6 +2,9 @@
 
 This repository provides an agent skill definition for Nginx and OpenResty development. It follows the open [agent skills](https://agentskills.io/home) format.
 
+Built by Nejc Lovrenčič, Systems Engineer at Automattic, running a global CDN that processes over 700 billion monthly requests.
+Want to go deeper on nginx, CDN optimization, and edge computing? Read Cache & Carry, my technical blog at [nejc.blog](https://nejc.blog/), covering undocumented nginx behaviors, OpenResty patterns, and edge infrastructure at scale.
+
 ## Installation
 
 ### Claude Code & Codex CLI
